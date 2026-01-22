@@ -1,0 +1,218 @@
+/**
+ * IP Geolocation service using local MaxMind GeoLite2 database
+ * No API rate limits - unlimited lookups with accurate data!
+ * 
+ * Setup: Download GeoLite2-City.mmdb from MaxMind and place in server/data/
+ * https://dev.maxmind.com/geoip/geolite2-free-geolocation-data
+ */
+
+import { Reader, type ReaderModel } from '@maxmind/geoip2-node';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+/** Path to GeoLite2 database */
+const DB_PATH = join(__dirname, 'data', 'GeoLite2-City.mmdb');
+
+/** Geolocation result interface */
+export interface GeoLocation {
+  ip: string;
+  city: string;
+  region: string;
+  country: string;
+  countryCode: string;
+  lat: number;
+  lng: number;
+  timezone: string;
+  isp: string;
+  org?: string;
+  as?: string;
+}
+
+/** MaxMind reader instance */
+let reader: ReaderModel | null = null;
+let initAttempted = false;
+
+/** Initialize the database reader */
+async function initReader(): Promise<ReaderModel | null> {
+  if (reader) return reader;
+  if (initAttempted) return null;
+  
+  initAttempted = true;
+
+  try {
+    reader = await Reader.open(DB_PATH);
+    console.log('GeoLite2 database loaded successfully');
+    return reader;
+  } catch (error) {
+    console.warn('GeoLite2 database not found at', DB_PATH);
+    console.warn('Falling back to external API. For better accuracy, download GeoLite2-City.mmdb from MaxMind.');
+    return null;
+  }
+}
+
+// Initialize on startup
+initReader();
+
+/**
+ * Check if an IP is private/localhost
+ */
+function isPrivateIP(ip: string): boolean {
+  // IPv4 private ranges
+  if (
+    ip === '127.0.0.1' ||
+    ip === 'localhost' ||
+    ip === 'unknown' ||
+    ip.startsWith('10.') ||
+    ip.startsWith('172.16.') ||
+    ip.startsWith('172.17.') ||
+    ip.startsWith('172.18.') ||
+    ip.startsWith('172.19.') ||
+    ip.startsWith('172.20.') ||
+    ip.startsWith('172.21.') ||
+    ip.startsWith('172.22.') ||
+    ip.startsWith('172.23.') ||
+    ip.startsWith('172.24.') ||
+    ip.startsWith('172.25.') ||
+    ip.startsWith('172.26.') ||
+    ip.startsWith('172.27.') ||
+    ip.startsWith('172.28.') ||
+    ip.startsWith('172.29.') ||
+    ip.startsWith('172.30.') ||
+    ip.startsWith('172.31.') ||
+    ip.startsWith('192.168.') ||
+    ip.startsWith('169.254.')
+  ) {
+    return true;
+  }
+
+  // IPv6 localhost
+  if (ip === '::1' || ip === '::ffff:127.0.0.1') {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Look up geolocation using local MaxMind database
+ */
+async function getGeolocationFromDatabase(ip: string): Promise<GeoLocation | null> {
+  try {
+    const db = await initReader();
+    if (!db) {
+      return null;
+    }
+
+    const result = db.city(ip);
+
+    if (!result) {
+      return null;
+    }
+
+    // Note: GeoLite2-City doesn't include ISP/ASN data (only paid GeoIP2 does)
+    // We use traits if available, otherwise 'Unknown'
+    const traits = result.traits as { isp?: string; organization?: string; autonomousSystemOrganization?: string } | undefined;
+
+    return {
+      ip,
+      lat: result.location?.latitude || 0,
+      lng: result.location?.longitude || 0,
+      city: result.city?.names?.en || 'Unknown',
+      region: result.subdivisions?.[0]?.names?.en || 'Unknown',
+      country: result.country?.names?.en || 'Unknown',
+      countryCode: result.country?.isoCode || 'XX',
+      timezone: result.location?.timeZone || 'UTC',
+      isp: traits?.isp || traits?.organization || 'Unknown',
+      org: traits?.organization || 'Unknown',
+      as: traits?.autonomousSystemOrganization || 'Unknown',
+    };
+  } catch (error) {
+    // Silently handle lookup errors (invalid IPs, etc.)
+    return null;
+  }
+}
+
+/**
+ * Fallback to external API when database is not available
+ */
+async function getGeolocationFromAPI(ip: string): Promise<GeoLocation | null> {
+  try {
+    // Try ipwho.is first
+    const response = await fetch(`https://ipwho.is/${ip}`);
+    if (response.ok) {
+      const data = await response.json();
+      if (data.success) {
+        return {
+          ip: data.ip,
+          city: data.city || 'Unknown',
+          region: data.region || 'Unknown',
+          country: data.country || 'Unknown',
+          countryCode: data.country_code || 'XX',
+          lat: data.latitude,
+          lng: data.longitude,
+          timezone: data.timezone?.id || 'UTC',
+          isp: data.connection?.isp || data.connection?.org || 'Unknown',
+        };
+      }
+    }
+  } catch (error) {
+    // Continue to fallback
+  }
+
+  try {
+    // Fallback to ipapi.co
+    const response = await fetch(`https://ipapi.co/${ip}/json/`);
+    if (response.ok) {
+      const data = await response.json();
+      if (!data.error) {
+        return {
+          ip: data.ip,
+          city: data.city || 'Unknown',
+          region: data.region || 'Unknown',
+          country: data.country_name || 'Unknown',
+          countryCode: data.country_code || 'XX',
+          lat: data.latitude,
+          lng: data.longitude,
+          timezone: data.timezone || 'UTC',
+          isp: data.org || 'Unknown',
+        };
+      }
+    }
+  } catch (error) {
+    // All APIs failed
+  }
+
+  return null;
+}
+
+/**
+ * Get geolocation for an IP address
+ * Uses local MaxMind database if available, falls back to external APIs
+ */
+export async function getGeolocation(ip: string): Promise<GeoLocation | null> {
+  // Skip localhost/private IPs - return demo data for development
+  if (isPrivateIP(ip)) {
+    return {
+      ip,
+      city: 'Local Development',
+      region: 'Dev',
+      country: 'Localhost',
+      countryCode: 'LC',
+      lat: 37.7749,
+      lng: -122.4194,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      isp: 'Local Network',
+    };
+  }
+
+  // Try local database first (more accurate)
+  const dbResult = await getGeolocationFromDatabase(ip);
+  if (dbResult) {
+    return dbResult;
+  }
+
+  // Fall back to external APIs
+  return getGeolocationFromAPI(ip);
+}
