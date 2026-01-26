@@ -25,8 +25,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Serve static frontend files at /aintivirus-identity-profiler
-const BASE_PATH = '/aintivirus-identity-profiler';
+// Serve static frontend files at /watcher
+const BASE_PATH = '/watcher';
 app.use(BASE_PATH, express.static(path.join(__dirname, '../dist')));
 
 const server = createServer(app);
