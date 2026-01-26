@@ -25,9 +25,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Serve static frontend files at /watcher
+// Serve static frontend files at root
 // When compiled, __dirname is server/dist, so we need to go up two levels
-const BASE_PATH = '/watcher';
+const BASE_PATH = '/';
 const distPath = path.join(__dirname, '../../dist');
 app.use(BASE_PATH, express.static(distPath));
 
@@ -1045,14 +1045,13 @@ app.post('/api/analyze', async (req, res) => {
   }
 });
 
-// SPA catch-all - serve index.html for routes under base path
-app.get(`${BASE_PATH}/*`, (req, res) => {
+// SPA catch-all - serve index.html for all routes
+app.get('*', (req, res) => {
+  // Don't serve index.html for API routes
+  if (req.path.startsWith('/api') || req.path === '/health' || req.path === '/visitors') {
+    return res.status(404).json({ error: 'Not found' });
+  }
   res.sendFile(path.join(distPath, 'index.html'));
-});
-
-// Redirect root of base path to include trailing slash
-app.get(BASE_PATH, (req, res) => {
-  res.redirect(`${BASE_PATH}/`);
 });
 
 const PORT = process.env.PORT || 3001;

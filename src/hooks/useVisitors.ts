@@ -65,10 +65,10 @@ const getWebSocketUrl = () => {
   }
   
   // In production, auto-detect based on current page URL
-  // WebSocket should use the same base path as the app (/watcher)
+  // WebSocket should use the same base path as the app (root)
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const host = window.location.host;
-  const basePath = '/watcher'; // Match the vite base path
+  const basePath = '/'; // Match the vite base path
   
   return `${protocol}//${host}${basePath}`;
 };

@@ -54,9 +54,8 @@ function getAPIBaseURL(): string {
     return 'http://localhost:3001';
   }
   
-  // In production, use the /watcher base path for API calls
-  // Since the app is served at /watcher, API calls should also go through /watcher
-  return '/watcher';
+  // In production, use relative path (same origin)
+  return '';
 }
 
 export function useAIAnalysis() {
