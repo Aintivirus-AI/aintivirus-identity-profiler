@@ -26,8 +26,10 @@ app.use(cors());
 app.use(express.json());
 
 // Serve static frontend files at /watcher
+// When compiled, __dirname is server/dist, so we need to go up two levels
 const BASE_PATH = '/watcher';
-app.use(BASE_PATH, express.static(path.join(__dirname, '../dist')));
+const distPath = path.join(__dirname, '../../dist');
+app.use(BASE_PATH, express.static(distPath));
 
 const server = createServer(app);
 const wss = new WebSocketServer({ server });
@@ -1045,7 +1047,7 @@ app.post('/api/analyze', async (req, res) => {
 
 // SPA catch-all - serve index.html for routes under base path
 app.get(`${BASE_PATH}/*`, (req, res) => {
-  res.sendFile(path.join(__dirname, '../dist/index.html'));
+  res.sendFile(path.join(distPath, 'index.html'));
 });
 
 // Redirect root of base path to include trailing slash
