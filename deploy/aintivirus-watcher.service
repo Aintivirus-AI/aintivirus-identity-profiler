@@ -5,10 +5,10 @@ After=network.target
 [Service]
 Type=simple
 User=www-data
-WorkingDirectory=/opt/aintivirus-watcher
+WorkingDirectory=/var/www/aintivirus-identity-profiler
 Environment="NODE_ENV=production"
 Environment="PORT=3001"
-ExecStart=/usr/bin/node --import tsx /opt/aintivirus-watcher/server/index.ts
+ExecStart=/usr/bin/node --import tsx /var/www/aintivirus-identity-profiler/server/index.ts
 Restart=always
 RestartSec=10
 StandardOutput=journal
