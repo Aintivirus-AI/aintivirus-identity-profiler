@@ -333,11 +333,6 @@ function App() {
                     {showAllTime ? `All Time (${historicalVisitors.length})` : 'All Time'}
                   </span>
                 </motion.button>
-                <ChatBox
-                  messages={chatMessages}
-                  onSend={sendChatMessage}
-                  isConnected={isConnected}
-                />
               </div>
               
               {/* Globe container - centered with room for location overlay */}
@@ -349,6 +344,13 @@ function App() {
                   showAllTime={showAllTime}
                 />
               </div>
+
+              {/* Chat box - positioned at bottom-right, above location overlay */}
+              <ChatBox
+                messages={chatMessages}
+                onSend={sendChatMessage}
+                isConnected={isConnected}
+              />
 
               {/* Location info - positioned at bottom, inside container */}
               <div className="absolute bottom-2 md:bottom-3 left-2 md:left-4 right-2 md:right-4 z-10">
