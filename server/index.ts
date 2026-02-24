@@ -27,9 +27,13 @@ app.use(cors());
 app.use(express.json());
 
 // Serve static frontend files at root
-// When compiled, __dirname is server/dist, so we need to go up two levels
+// tsx mode: __dirname = server/ -> ../dist
+// compiled mode: __dirname = server/dist/ -> ../../dist
 const BASE_PATH = '/';
-const distPath = path.join(__dirname, '../../dist');
+const distPath = [
+  path.join(__dirname, '../dist'),
+  path.join(__dirname, '../../dist'),
+].find(p => fs.existsSync(path.join(p, 'index.html'))) || path.join(__dirname, '../dist');
 app.use(BASE_PATH, express.static(distPath));
 
 const server = createServer(app);
