@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare, Send, X } from 'lucide-react';
+import { MessageSquare, Send, ChevronDown } from 'lucide-react';
 import type { ChatMessage } from '../../hooks/useVisitors';
 
 interface ChatBoxProps {
@@ -48,40 +48,46 @@ export function ChatBox({ messages, onSend, isConnected }: ChatBoxProps) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="w-[260px] md:w-[300px] bg-cyber-bg/90 backdrop-blur-xl border border-white/10 overflow-hidden shadow-2xl shadow-black/40 flex flex-col"
+            className="w-[280px] md:w-[340px] bg-cyber-bg/95 backdrop-blur-xl border border-cyber-cyan/10 overflow-hidden shadow-2xl shadow-black/50 flex flex-col"
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-3 py-2 border-b border-white/5">
-              <div className="flex items-center gap-2">
-                <MessageSquare size={12} className="text-cyber-cyan" />
-                <span className="text-[10px] font-display font-semibold uppercase tracking-widest text-white/50">
-                  Anonymous Chat
+            <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/5 bg-white/[0.02]">
+              <div className="flex items-center gap-2.5">
+                <MessageSquare size={14} className="text-cyber-cyan" />
+                <span className="text-[11px] font-display font-semibold uppercase tracking-widest text-white/50">
+                  Live Chat
+                </span>
+                <span className="text-[9px] font-mono text-white/20">
+                  {messages.length > 0 ? `${messages.length} msg` : ''}
                 </span>
               </div>
               <button
                 onClick={() => setOpen(false)}
-                className="text-white/30 hover:text-white/60 transition-colors"
+                className="text-white/30 hover:text-white/60 transition-colors p-1"
               >
-                <X size={14} />
+                <ChevronDown size={16} />
               </button>
             </div>
 
             {/* Messages */}
             <div
               ref={listRef}
-              className="flex-1 max-h-[200px] min-h-[120px] overflow-y-auto px-3 py-2 space-y-2 scrollbar-thin scrollbar-thumb-white/10"
+              className="flex-1 max-h-[240px] min-h-[140px] overflow-y-auto px-4 py-3 space-y-3 scrollbar-thin scrollbar-thumb-white/10"
             >
               {messages.length === 0 && (
-                <p className="text-white/20 text-[10px] text-center py-4 font-mono">
-                  No messages yet. Say something.
-                </p>
+                <div className="flex flex-col items-center justify-center py-6 gap-2">
+                  <MessageSquare size={20} className="text-white/10" />
+                  <p className="text-white/20 text-[11px] text-center font-mono">
+                    No messages yet
+                  </p>
+                </div>
               )}
               {messages.map((msg, i) => (
-                <div key={`${msg.timestamp}-${i}`} className="group">
-                  <p className="text-white/70 text-[11px] leading-relaxed break-words">
+                <div key={`${msg.timestamp}-${i}`} className="flex flex-col gap-0.5">
+                  <p className="text-white/80 text-[12px] leading-relaxed break-words">
                     {msg.text}
                   </p>
-                  <span className="text-white/20 text-[9px] font-mono">
+                  <span className="text-white/15 text-[9px] font-mono">
                     {formatTime(msg.timestamp)}
                   </span>
                 </div>
@@ -89,23 +95,23 @@ export function ChatBox({ messages, onSend, isConnected }: ChatBoxProps) {
             </div>
 
             {/* Input */}
-            <form onSubmit={handleSubmit} className="border-t border-white/5 flex items-center gap-2 px-3 py-2">
+            <form onSubmit={handleSubmit} className="border-t border-white/5 flex items-center gap-2 px-4 py-3 bg-white/[0.02]">
               <input
                 ref={inputRef}
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder={isConnected ? 'Type a message...' : 'Disconnected'}
+                placeholder={isConnected ? 'Say something...' : 'Disconnected'}
                 disabled={!isConnected}
                 maxLength={500}
-                className="flex-1 bg-transparent text-white/80 text-[11px] placeholder:text-white/20 outline-none disabled:opacity-40"
+                className="flex-1 bg-transparent text-white/80 text-[12px] placeholder:text-white/20 outline-none disabled:opacity-40"
               />
               <button
                 type="submit"
                 disabled={!isConnected || !input.trim()}
-                className="text-cyber-cyan/60 hover:text-cyber-cyan transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                className="text-cyber-cyan/60 hover:text-cyber-cyan transition-colors disabled:opacity-20 disabled:cursor-not-allowed p-1"
               >
-                <Send size={14} />
+                <Send size={16} />
               </button>
             </form>
           </motion.div>
@@ -116,19 +122,19 @@ export function ChatBox({ messages, onSend, isConnected }: ChatBoxProps) {
       {!open && (
         <motion.button
           onClick={() => setOpen(true)}
-          className="flex items-center gap-2 bg-cyber-bg/70 backdrop-blur-xl px-3 py-2 rounded-full border border-white/10 text-white/40 hover:text-cyber-cyan hover:border-cyber-cyan/30 transition-colors cursor-pointer"
+          className="flex items-center gap-3 bg-cyber-bg/80 backdrop-blur-xl px-5 py-3 rounded-full border border-white/10 text-white/50 hover:text-cyber-cyan hover:border-cyber-cyan/30 transition-colors cursor-pointer shadow-lg shadow-black/30"
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 1.5 }}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
         >
-          <MessageSquare size={12} />
-          <span className="text-[9px] font-display font-semibold uppercase tracking-widest">
+          <MessageSquare size={16} />
+          <span className="text-[11px] font-display font-semibold uppercase tracking-widest">
             Chat
           </span>
           {messages.length > 0 && (
-            <span className="bg-cyber-cyan/20 text-cyber-cyan text-[8px] font-mono px-1.5 py-0.5 rounded-full">
+            <span className="bg-cyber-cyan/20 text-cyber-cyan text-[10px] font-mono px-2 py-0.5 rounded-full min-w-[24px] text-center">
               {messages.length}
             </span>
           )}
