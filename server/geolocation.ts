@@ -139,30 +139,7 @@ async function getGeolocationFromDatabase(ip: string): Promise<GeoLocation | nul
  */
 async function getGeolocationFromAPI(ip: string): Promise<GeoLocation | null> {
   try {
-    // Try ip-api.com first (free, no auth, no blocking)
-    const response = await fetch(`http://ip-api.com/json/${ip}?fields=query,status,country,countryCode,regionName,city,lat,lon,timezone,isp,org`);
-    if (response.ok) {
-      const data = await response.json();
-      if (data.status === 'success') {
-        return {
-          ip: data.query,
-          city: data.city || 'Unknown',
-          region: data.regionName || 'Unknown',
-          country: data.country || 'Unknown',
-          countryCode: data.countryCode || 'XX',
-          lat: data.lat,
-          lng: data.lon,
-          timezone: data.timezone || 'UTC',
-          isp: data.isp || data.org || 'Unknown',
-        };
-      }
-    }
-  } catch (error) {
-    // Continue to fallback
-  }
-
-  try {
-    // Fallback to ipapi.co
+    // Try ipapi.co first (HTTPS, good accuracy, no key)
     const response = await fetch(`https://ipapi.co/${ip}/json/`);
     if (response.ok) {
       const data = await response.json();
@@ -179,6 +156,28 @@ async function getGeolocationFromAPI(ip: string): Promise<GeoLocation | null> {
           isp: data.org || 'Unknown',
         };
       }
+    }
+  } catch (error) {
+    // Continue to fallback
+  }
+
+  try {
+    // Fallback to ipinfo.io
+    const response = await fetch(`https://ipinfo.io/${ip}/json`);
+    if (response.ok) {
+      const data = await response.json();
+      const [lat, lon] = (data.loc || '0,0').split(',').map(Number);
+      return {
+        ip: data.ip || ip,
+        city: data.city || 'Unknown',
+        region: data.region || 'Unknown',
+        country: data.country || 'Unknown',
+        countryCode: data.country || 'XX',
+        lat,
+        lng: lon,
+        timezone: data.timezone || 'UTC',
+        isp: data.org || 'Unknown',
+      };
     }
   } catch (error) {
     // All APIs failed

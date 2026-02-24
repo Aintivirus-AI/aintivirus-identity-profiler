@@ -2,21 +2,6 @@ import { useEffect } from 'react';
 import { useProfileStore } from '../store/useProfileStore';
 
 // Response types for different APIs
-interface IpApiComResponse {
-  query: string;
-  status: string;
-  country: string;
-  countryCode: string;
-  region: string;
-  regionName: string;
-  city: string;
-  lat: number;
-  lon: number;
-  timezone: string;
-  isp: string;
-  org: string;
-}
-
 interface IpApiCoResponse {
   ip: string;
   city: string;
@@ -118,27 +103,7 @@ export function useNetworkInfo() {
       });
     }
 
-    // Try multiple APIs with fallback
-    const fetchFromIpApiCom = async (): Promise<NormalizedLocation> => {
-      const response = await fetch('http://ip-api.com/json/?fields=query,status,country,countryCode,region,regionName,city,lat,lon,timezone,isp,org');
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      
-      const data: IpApiComResponse = await response.json();
-      if (data.status !== 'success') throw new Error('API returned error');
-      
-      return {
-        ip: data.query,
-        city: data.city,
-        region: data.regionName,
-        country: data.country,
-        countryCode: data.countryCode,
-        isp: data.isp || data.org || 'Unknown',
-        latitude: data.lat,
-        longitude: data.lon,
-        timezone: data.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
-      };
-    };
-
+    // Try multiple APIs with fallback (all HTTPS, no API key required)
     const fetchFromIpApiCo = async (): Promise<NormalizedLocation> => {
       const response = await fetch('https://ipapi.co/json/');
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -185,7 +150,6 @@ export function useNetworkInfo() {
 
       // List of API fetchers to try in order
       const apiFetchers = [
-        { name: 'ip-api.com', fetch: fetchFromIpApiCom },
         { name: 'ipapi.co', fetch: fetchFromIpApiCo },
         { name: 'ipinfo.io', fetch: fetchFromIpInfo },
       ];
