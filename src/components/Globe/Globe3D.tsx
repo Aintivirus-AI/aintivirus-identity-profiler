@@ -187,24 +187,33 @@ function VisitorArc({
   );
 }
 
-function HistoricalPins({ visitors }: { visitors: HistoricalVisitor[] }) {
-  const geometry = useMemo(() => {
-    const positions: number[] = [];
-    for (const v of visitors) {
-      const pos = latLongToVector3(v.lat, v.lng, 2.08);
-      positions.push(pos.x, pos.y, pos.z);
-    }
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-    return geo;
-  }, [visitors]);
+function HistoricalPin({ lat, lon }: { lat: number; lon: number }) {
+  const position = useMemo(() => latLongToVector3(lat, lon, 2.15), [lat, lon]);
+  const size = 0.06;
 
+  return (
+    <group position={position}>
+      <mesh>
+        <sphereGeometry args={[size, 6, 6]} />
+        <meshBasicMaterial color="#22c55e" />
+      </mesh>
+      <mesh rotation={[Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[size * 1.5, size * 2, 12]} />
+        <meshBasicMaterial color="#22c55e" opacity={0.3} transparent side={THREE.DoubleSide} />
+      </mesh>
+    </group>
+  );
+}
+
+function HistoricalPins({ visitors }: { visitors: HistoricalVisitor[] }) {
   if (visitors.length === 0) return null;
 
   return (
-    <points geometry={geometry}>
-      <pointsMaterial color="#ffffff" size={0.04} transparent opacity={0.35} sizeAttenuation />
-    </points>
+    <>
+      {visitors.map((v, i) => (
+        <HistoricalPin key={`h-${v.connectedAt}-${i}`} lat={v.lat} lon={v.lng} />
+      ))}
+    </>
   );
 }
 
