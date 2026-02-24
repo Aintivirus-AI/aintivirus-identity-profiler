@@ -122,7 +122,7 @@ export function ChatBox({ messages, onSend, isConnected }: ChatBoxProps) {
       {!open && (
         <motion.button
           onClick={() => setOpen(true)}
-          className="flex items-center gap-3 bg-cyber-bg/80 backdrop-blur-xl px-5 py-3 rounded-full border border-white/10 text-white/50 hover:text-cyber-cyan hover:border-cyber-cyan/30 transition-colors cursor-pointer shadow-lg shadow-black/30"
+          className="flex items-center gap-3 bg-cyber-bg/80 backdrop-blur-xl px-6 py-4 rounded-full border border-cyber-cyan/15 text-white/50 hover:text-cyber-cyan hover:border-cyber-cyan/40 hover:bg-cyber-bg/90 transition-all cursor-pointer shadow-lg shadow-cyan-900/20"
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 1.5 }}
