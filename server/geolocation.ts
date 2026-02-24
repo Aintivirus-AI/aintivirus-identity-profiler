@@ -139,21 +139,21 @@ async function getGeolocationFromDatabase(ip: string): Promise<GeoLocation | nul
  */
 async function getGeolocationFromAPI(ip: string): Promise<GeoLocation | null> {
   try {
-    // Try ipwho.is first
-    const response = await fetch(`https://ipwho.is/${ip}`);
+    // Try ip-api.com first (free, no auth, no blocking)
+    const response = await fetch(`http://ip-api.com/json/${ip}?fields=query,status,country,countryCode,regionName,city,lat,lon,timezone,isp,org`);
     if (response.ok) {
       const data = await response.json();
-      if (data.success) {
+      if (data.status === 'success') {
         return {
-          ip: data.ip,
+          ip: data.query,
           city: data.city || 'Unknown',
-          region: data.region || 'Unknown',
+          region: data.regionName || 'Unknown',
           country: data.country || 'Unknown',
-          countryCode: data.country_code || 'XX',
-          lat: data.latitude,
-          lng: data.longitude,
-          timezone: data.timezone?.id || 'UTC',
-          isp: data.connection?.isp || data.connection?.org || 'Unknown',
+          countryCode: data.countryCode || 'XX',
+          lat: data.lat,
+          lng: data.lon,
+          timezone: data.timezone || 'UTC',
+          isp: data.isp || data.org || 'Unknown',
         };
       }
     }
