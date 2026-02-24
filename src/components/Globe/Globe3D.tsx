@@ -184,10 +184,10 @@ function VisitorPin({
         <ringGeometry args={[size * 1.5, size * 2, 12]} />
         <meshBasicMaterial color={color} opacity={0.4} transparent side={THREE.DoubleSide} />
       </mesh>
-      {/* Invisible larger hit area for easier clicking */}
-      <mesh visible={false}>
-        <sphereGeometry args={[size * 3, 6, 6]} />
-        <meshBasicMaterial />
+      {/* Larger hit area for easier clicking */}
+      <mesh>
+        <sphereGeometry args={[size * 4, 6, 6]} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
     </group>
   );
@@ -239,9 +239,9 @@ function HistoricalPin({ visitor, globeRef, onPinClick }: {
         <ringGeometry args={[size * 1.5, size * 2, 12]} />
         <meshBasicMaterial color="#22c55e" opacity={0.3} transparent side={THREE.DoubleSide} />
       </mesh>
-      <mesh visible={false}>
-        <sphereGeometry args={[size * 3, 6, 6]} />
-        <meshBasicMaterial />
+      <mesh>
+        <sphereGeometry args={[size * 4, 6, 6]} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
     </group>
   );
@@ -489,7 +489,6 @@ export function Globe3D({ visitors, currentVisitorId, historicalVisitors, showAl
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.8, delay: 0.3, ease: [0.4, 0, 0.2, 1] }}
-      onClick={() => setTooltip(null)}
     >
       <div 
         className="absolute inset-0 pointer-events-none z-10"
@@ -503,6 +502,7 @@ export function Globe3D({ visitors, currentVisitorId, historicalVisitors, showAl
         dpr={[1, 1.5]}
         performance={{ min: 0.5 }}
         style={{ width: '100%', height: '100%' }}
+        onPointerMissed={() => setTooltip(null)}
       >
         <GlobeScene 
           visitors={visitors}
