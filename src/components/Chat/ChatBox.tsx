@@ -40,13 +40,13 @@ export function ChatBox({ messages, onSend, isConnected }: ChatBoxProps) {
   };
 
   return (
-    <div className="absolute bottom-[70px] md:bottom-[80px] right-2 md:right-4 z-20 flex flex-col items-end gap-2">
+    <div className="flex flex-col items-start gap-2">
       <AnimatePresence>
         {open && (
           <motion.div
-            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+            initial={{ opacity: 0, y: -10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
             transition={{ duration: 0.2 }}
             className="w-[280px] md:w-[340px] bg-cyber-bg/95 backdrop-blur-xl border border-cyber-cyan/10 overflow-hidden shadow-2xl shadow-black/50 flex flex-col"
           >
@@ -118,23 +118,21 @@ export function ChatBox({ messages, onSend, isConnected }: ChatBoxProps) {
         )}
       </AnimatePresence>
 
-      {/* Toggle button */}
+      {/* Toggle button - matches status badge style */}
       {!open && (
         <motion.button
           onClick={() => setOpen(true)}
-          className="flex items-center gap-3 bg-cyber-bg/80 backdrop-blur-xl px-6 py-4 rounded-full border border-cyber-cyan/15 text-white/50 hover:text-cyber-cyan hover:border-cyber-cyan/40 hover:bg-cyber-bg/90 transition-all cursor-pointer shadow-lg shadow-cyan-900/20"
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 1.5 }}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+          className="flex items-center gap-2 bg-cyber-bg/60 backdrop-blur-xl px-3 md:px-4 py-1.5 md:py-2 rounded-full border border-cyber-cyan/15 text-white/40 hover:text-cyber-cyan hover:border-cyber-cyan/30 transition-colors cursor-pointer"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.1 }}
         >
-          <MessageSquare size={16} />
-          <span className="text-[11px] font-display font-semibold uppercase tracking-widest">
+          <MessageSquare size={10} className="md:w-3 md:h-3" />
+          <span className="text-[9px] md:text-[10px] font-display font-semibold uppercase tracking-[0.15em] md:tracking-[0.2em]">
             Chat
           </span>
           {messages.length > 0 && (
-            <span className="bg-cyber-cyan/20 text-cyber-cyan text-[10px] font-mono px-2 py-0.5 rounded-full min-w-[24px] text-center">
+            <span className="bg-cyber-cyan/20 text-cyber-cyan text-[8px] md:text-[9px] font-mono px-1.5 py-0.5 rounded-full">
               {messages.length}
             </span>
           )}
