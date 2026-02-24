@@ -6,10 +6,13 @@ import * as THREE from 'three';
 import { motion } from 'framer-motion';
 import { MapPin } from 'lucide-react';
 import type { Visitor } from '../../hooks/useVisitors';
+import type { HistoricalVisitor } from '../../hooks/useVisitorHistory';
 
 interface Globe3DProps {
   visitors: Visitor[];
   currentVisitorId: string | null;
+  historicalVisitors?: HistoricalVisitor[];
+  showAllTime?: boolean;
 }
 
 function latLongToVector3(lat: number, lon: number, radius: number): THREE.Vector3 {
@@ -184,16 +187,41 @@ function VisitorArc({
   );
 }
 
+function HistoricalPins({ visitors }: { visitors: HistoricalVisitor[] }) {
+  const geometry = useMemo(() => {
+    const positions: number[] = [];
+    for (const v of visitors) {
+      const pos = latLongToVector3(v.lat, v.lng, 2.08);
+      positions.push(pos.x, pos.y, pos.z);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    return geo;
+  }, [visitors]);
+
+  if (visitors.length === 0) return null;
+
+  return (
+    <points geometry={geometry}>
+      <pointsMaterial color="#ffffff" size={0.04} transparent opacity={0.35} sizeAttenuation />
+    </points>
+  );
+}
+
 function RotatingGlobe({ 
   visitors,
   currentVisitorId,
   globeRef,
   onPositionUpdate,
+  historicalVisitors,
+  showAllTime,
 }: { 
   visitors: Visitor[];
   currentVisitorId: string | null;
   globeRef: React.RefObject<THREE.Group | null>;
   onPositionUpdate: (id: string, pos: { x: number; y: number; visible: boolean }) => void;
+  historicalVisitors?: HistoricalVisitor[];
+  showAllTime?: boolean;
 }) {
   useFrame((_, delta) => {
     if (globeRef.current) {
@@ -247,6 +275,11 @@ function RotatingGlobe({
           endLon={visitor.geo!.lng}
         />
       ))}
+
+      {/* Historical visitor dots */}
+      {showAllTime && historicalVisitors && (
+        <HistoricalPins visitors={historicalVisitors} />
+      )}
     </group>
   );
 }
@@ -256,11 +289,15 @@ function GlobeScene({
   currentVisitorId,
   globeRef,
   onPositionUpdate,
+  historicalVisitors,
+  showAllTime,
 }: { 
   visitors: Visitor[];
   currentVisitorId: string | null;
   globeRef: React.RefObject<THREE.Group | null>;
   onPositionUpdate: (id: string, pos: { x: number; y: number; visible: boolean }) => void;
+  historicalVisitors?: HistoricalVisitor[];
+  showAllTime?: boolean;
 }) {
   return (
     <>
@@ -271,6 +308,8 @@ function GlobeScene({
         currentVisitorId={currentVisitorId}
         globeRef={globeRef}
         onPositionUpdate={onPositionUpdate}
+        historicalVisitors={historicalVisitors}
+        showAllTime={showAllTime}
       />
       <OrbitControls 
         enableZoom={false} 
@@ -307,7 +346,7 @@ function FloatingLabel({ x, y, visible }: { x: number; y: number; visible: boole
   );
 }
 
-export function Globe3D({ visitors, currentVisitorId }: Globe3DProps) {
+export function Globe3D({ visitors, currentVisitorId, historicalVisitors, showAllTime }: Globe3DProps) {
   const globeRef = useRef<THREE.Group>(null);
   const [labelPositions, setLabelPositions] = useState<Record<string, { x: number; y: number; visible: boolean }>>({});
 
@@ -355,6 +394,8 @@ export function Globe3D({ visitors, currentVisitorId }: Globe3DProps) {
           currentVisitorId={currentVisitorId}
           globeRef={globeRef}
           onPositionUpdate={handlePositionUpdate}
+          historicalVisitors={historicalVisitors}
+          showAllTime={showAllTime}
         />
       </Canvas>
 

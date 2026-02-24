@@ -139,30 +139,7 @@ async function getGeolocationFromDatabase(ip: string): Promise<GeoLocation | nul
  */
 async function getGeolocationFromAPI(ip: string): Promise<GeoLocation | null> {
   try {
-    // Try ipwho.is first
-    const response = await fetch(`https://ipwho.is/${ip}`);
-    if (response.ok) {
-      const data = await response.json();
-      if (data.success) {
-        return {
-          ip: data.ip,
-          city: data.city || 'Unknown',
-          region: data.region || 'Unknown',
-          country: data.country || 'Unknown',
-          countryCode: data.country_code || 'XX',
-          lat: data.latitude,
-          lng: data.longitude,
-          timezone: data.timezone?.id || 'UTC',
-          isp: data.connection?.isp || data.connection?.org || 'Unknown',
-        };
-      }
-    }
-  } catch (error) {
-    // Continue to fallback
-  }
-
-  try {
-    // Fallback to ipapi.co
+    // Try ipapi.co first (HTTPS, good accuracy, no key)
     const response = await fetch(`https://ipapi.co/${ip}/json/`);
     if (response.ok) {
       const data = await response.json();
@@ -179,6 +156,28 @@ async function getGeolocationFromAPI(ip: string): Promise<GeoLocation | null> {
           isp: data.org || 'Unknown',
         };
       }
+    }
+  } catch (error) {
+    // Continue to fallback
+  }
+
+  try {
+    // Fallback to ipinfo.io
+    const response = await fetch(`https://ipinfo.io/${ip}/json`);
+    if (response.ok) {
+      const data = await response.json();
+      const [lat, lon] = (data.loc || '0,0').split(',').map(Number);
+      return {
+        ip: data.ip || ip,
+        city: data.city || 'Unknown',
+        region: data.region || 'Unknown',
+        country: data.country || 'Unknown',
+        countryCode: data.country || 'XX',
+        lat,
+        lng: lon,
+        timezone: data.timezone || 'UTC',
+        isp: data.org || 'Unknown',
+      };
     }
   } catch (error) {
     // All APIs failed
