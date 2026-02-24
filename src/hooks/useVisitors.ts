@@ -24,8 +24,13 @@ export interface Visitor {
   userAgent: string;
 }
 
+export interface ChatMessage {
+  text: string;
+  timestamp: number;
+}
+
 interface WSMessage {
-  type: 'welcome' | 'visitor_joined' | 'visitor_left' | 'visitors_list';
+  type: 'welcome' | 'visitor_joined' | 'visitor_left' | 'visitors_list' | 'chat_message' | 'chat_history';
   payload: unknown;
 }
 
@@ -44,6 +49,8 @@ interface UseVisitorsReturn {
   isConnected: boolean;
   error: string | null;
   reconnect: () => void;
+  chatMessages: ChatMessage[];
+  sendChatMessage: (text: string) => void;
 }
 
 // Dynamically determine WebSocket URL based on current host
@@ -82,6 +89,7 @@ export function useVisitors(): UseVisitorsReturn {
   const [currentVisitor, setCurrentVisitor] = useState<Visitor | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
 
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectAttempts = useRef(0);
@@ -143,6 +151,18 @@ export function useVisitors(): UseVisitorsReturn {
               setVisitors(payload.visitors);
               break;
             }
+
+            case 'chat_history': {
+              const payload = message.payload as { messages: ChatMessage[] };
+              setChatMessages(payload.messages);
+              break;
+            }
+
+            case 'chat_message': {
+              const payload = message.payload as ChatMessage;
+              setChatMessages((prev) => [...prev, payload]);
+              break;
+            }
           }
         } catch (err) {
           console.error('[Visitors] Failed to parse message:', err);
@@ -184,6 +204,12 @@ export function useVisitors(): UseVisitorsReturn {
     connect();
   }, [connect]);
 
+  const sendChatMessage = useCallback((text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
+    wsRef.current.send(JSON.stringify({ type: 'chat_message', payload: { text: trimmed } }));
+  }, []);
+
   // Connect on mount
   useEffect(() => {
     connect();
@@ -204,5 +230,7 @@ export function useVisitors(): UseVisitorsReturn {
     isConnected,
     error,
     reconnect,
+    chatMessages,
+    sendChatMessage,
   };
 }

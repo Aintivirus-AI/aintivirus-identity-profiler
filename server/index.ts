@@ -9,6 +9,7 @@ import { createServer } from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
 import cors from 'cors';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { getGeolocation, type GeoLocation } from './geolocation.js';
 
@@ -44,14 +45,59 @@ interface Visitor {
 }
 
 interface WSMessage {
-  type: 'welcome' | 'visitor_joined' | 'visitor_left' | 'visitors_list';
+  type: 'welcome' | 'visitor_joined' | 'visitor_left' | 'visitors_list' | 'chat_message' | 'chat_history';
   payload: unknown;
+}
+
+interface HistoricalVisitor {
+  lat: number;
+  lng: number;
+  city: string;
+  country: string;
+  connectedAt: number;
+}
+
+interface ChatMessage {
+  text: string;
+  timestamp: number;
 }
 
 // Store visitors in memory
 const visitors = new Map<string, Visitor>();
 const wsToId = new Map<WebSocket, string>();
 const wsAlive = new Map<WebSocket, boolean>();
+
+// Chat message buffer (in-memory, last 50)
+const MAX_CHAT_MESSAGES = 50;
+const chatMessages: ChatMessage[] = [];
+
+// Visitor history file
+const HISTORY_FILE = path.join(__dirname, 'data', 'visitors-history.json');
+
+function loadVisitorHistory(): HistoricalVisitor[] {
+  try {
+    if (fs.existsSync(HISTORY_FILE)) {
+      return JSON.parse(fs.readFileSync(HISTORY_FILE, 'utf-8'));
+    }
+  } catch {
+    console.warn('[History] Could not read history file, starting fresh');
+  }
+  return [];
+}
+
+function appendVisitorHistory(entry: HistoricalVisitor): void {
+  try {
+    const dir = path.dirname(HISTORY_FILE);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    const history = loadVisitorHistory();
+    history.push(entry);
+    fs.writeFileSync(HISTORY_FILE, JSON.stringify(history));
+  } catch (err) {
+    console.error('[History] Failed to write history:', err);
+  }
+}
 
 // Heartbeat interval to detect dead connections
 const HEARTBEAT_INTERVAL = 30000; // 30 seconds
@@ -142,6 +188,17 @@ wss.on('connection', async (ws, req) => {
   visitors.set(visitorId, visitor);
   wsToId.set(ws, visitorId);
 
+  // Persist to history file
+  if (geo) {
+    appendVisitorHistory({
+      lat: geo.lat,
+      lng: geo.lng,
+      city: geo.city || 'Unknown',
+      country: geo.country || 'Unknown',
+      connectedAt: Date.now(),
+    });
+  }
+
   // Send welcome message with visitor info and current visitors list
   send(ws, {
     type: 'welcome',
@@ -150,6 +207,14 @@ wss.on('connection', async (ws, req) => {
       visitors: Array.from(visitors.values()),
     },
   });
+
+  // Send chat history
+  if (chatMessages.length > 0) {
+    send(ws, {
+      type: 'chat_history',
+      payload: { messages: chatMessages },
+    });
+  }
 
   // Broadcast new visitor to others
   broadcast(
@@ -162,6 +227,32 @@ wss.on('connection', async (ws, req) => {
 
   console.log(`[${visitorId}] Location: ${geo?.city}, ${geo?.country} (${geo?.lat}, ${geo?.lng})`);
   console.log(`Total visitors: ${visitors.size}`);
+
+  // Handle incoming messages (chat)
+  ws.on('message', (raw) => {
+    try {
+      const msg = JSON.parse(raw.toString());
+      if (msg.type === 'chat_message' && typeof msg.payload?.text === 'string') {
+        const text = msg.payload.text.trim().slice(0, 500);
+        if (!text) return;
+        const chatMsg: ChatMessage = { text, timestamp: Date.now() };
+        chatMessages.push(chatMsg);
+        if (chatMessages.length > MAX_CHAT_MESSAGES) {
+          chatMessages.shift();
+        }
+        // Broadcast to ALL clients (including sender so they get the server timestamp)
+        const outMsg: WSMessage = { type: 'chat_message', payload: chatMsg };
+        const data = JSON.stringify(outMsg);
+        wss.clients.forEach((client) => {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(data);
+          }
+        });
+      }
+    } catch {
+      // ignore malformed messages
+    }
+  });
 
   // Handle disconnect
   ws.on('close', () => {
@@ -210,6 +301,12 @@ app.get('/visitors', (req, res) => {
   res.json({
     visitors: Array.from(visitors.values()),
   });
+});
+
+// Get all-time visitor history
+app.get('/api/visitors/history', (req, res) => {
+  const history = loadVisitorHistory();
+  res.json({ visitors: history });
 });
 
 // ===========================================

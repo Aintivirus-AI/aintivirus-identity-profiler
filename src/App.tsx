@@ -1,6 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Shield, Activity, User, Brain, Users, Navigation, Loader2, AlertCircle } from 'lucide-react';
+import { Shield, Activity, User, Brain, Users, Navigation, Loader2, AlertCircle, BatteryFull, BatteryMedium, BatteryLow, BatteryCharging, Globe } from 'lucide-react';
 import type { Visitor } from './hooks/useVisitors';
 
 // Hooks
@@ -14,10 +14,12 @@ import { useCopyPasteTracker } from './hooks/useCopyPasteTracker';
 import { useEmotionTracker } from './hooks/useEmotionTracker';
 import { useComprehensiveDetection } from './hooks/useComprehensiveDetection';
 import { useVisitors } from './hooks/useVisitors';
+import { useVisitorHistory } from './hooks/useVisitorHistory';
 
 // Components
 import { Globe3D } from './components/Globe/Globe3D';
 import { AdAuction } from './components/AdAuction/AdAuction';
+import { ChatBox } from './components/Chat/ChatBox';
 import Navbar from './components/Navbar/Navbar';
 import Footer from './components/Footer/Footer';
 
@@ -131,6 +133,36 @@ function ParticleBackground() {
 }
 
 
+function BatteryBadge() {
+  const battery = useProfileStore((s) => s.hardware.battery);
+  if (!battery) return null;
+
+  const pct = Math.round(battery.level * 100);
+  const color = battery.charging
+    ? 'text-cyber-cyan border-cyber-cyan/20'
+    : pct > 50
+      ? 'text-emerald-400 border-emerald-500/20'
+      : pct > 20
+        ? 'text-yellow-400 border-yellow-500/20'
+        : 'text-rose-400 border-rose-500/20';
+
+  const Icon = battery.charging ? BatteryCharging : pct > 50 ? BatteryFull : pct > 20 ? BatteryMedium : BatteryLow;
+
+  return (
+    <motion.div
+      className={`flex items-center gap-2 bg-cyber-bg/60 backdrop-blur-xl px-3 md:px-4 py-1.5 md:py-2 rounded-full border ${color}`}
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.7 }}
+    >
+      <Icon size={10} className="md:w-3 md:h-3" />
+      <span className="text-[9px] md:text-[10px] font-display font-semibold uppercase tracking-[0.15em] md:tracking-[0.2em]">
+        {pct}%{battery.charging ? ' Charging' : ''}
+      </span>
+    </motion.div>
+  );
+}
+
 function SectionTitle({ children, icon, badge }: { children: React.ReactNode; icon: React.ReactNode; badge?: React.ReactNode }) {
   return (
     <motion.div 
@@ -221,7 +253,11 @@ function App() {
   useComprehensiveDetection();
 
   // Multi-visitor tracking
-  const { visitors, currentVisitor, isConnected } = useVisitors();
+  const { visitors, currentVisitor, isConnected, chatMessages, sendChatMessage } = useVisitors();
+
+  // All-time visitor history
+  const { history: historicalVisitors } = useVisitorHistory();
+  const [showAllTime, setShowAllTime] = useState(false);
 
   const { addConsoleEntry } = useProfileStore();
 
@@ -280,6 +316,23 @@ function App() {
                     {visitors.length > 1 ? `${visitors.length - 1} Others Online` : 'You are the first'}
                   </span>
                 </motion.div>
+                <BatteryBadge />
+                <motion.button
+                  onClick={() => setShowAllTime((v) => !v)}
+                  className={`flex items-center gap-2 bg-cyber-bg/60 backdrop-blur-xl px-3 md:px-4 py-1.5 md:py-2 rounded-full border cursor-pointer transition-colors ${
+                    showAllTime
+                      ? 'text-cyber-cyan border-cyber-cyan/30'
+                      : 'text-white/40 border-white/10 hover:text-white/60 hover:border-white/20'
+                  }`}
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.9 }}
+                >
+                  <Globe size={10} className="md:w-3 md:h-3" />
+                  <span className="text-[9px] md:text-[10px] font-display font-semibold uppercase tracking-[0.15em] md:tracking-[0.2em]">
+                    {showAllTime ? `All Time (${historicalVisitors.length})` : 'All Time'}
+                  </span>
+                </motion.button>
               </div>
               
               {/* Globe container - centered with room for location overlay */}
@@ -287,8 +340,17 @@ function App() {
                 <Globe3D 
                   visitors={visitors}
                   currentVisitorId={currentVisitor?.id ?? null}
+                  historicalVisitors={historicalVisitors}
+                  showAllTime={showAllTime}
                 />
               </div>
+
+              {/* Chat box - positioned at bottom-right, above location overlay */}
+              <ChatBox
+                messages={chatMessages}
+                onSend={sendChatMessage}
+                isConnected={isConnected}
+              />
 
               {/* Location info - positioned at bottom, inside container */}
               <div className="absolute bottom-2 md:bottom-3 left-2 md:left-4 right-2 md:right-4 z-10">
