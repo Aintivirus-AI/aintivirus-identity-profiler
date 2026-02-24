@@ -71,31 +71,43 @@ const wsAlive = new Map<WebSocket, boolean>();
 const MAX_CHAT_MESSAGES = 50;
 const chatMessages: ChatMessage[] = [];
 
-// Visitor history file
-const HISTORY_FILE = path.join(__dirname, 'data', 'visitors-history.json');
+// Visitor history: in-memory primary store with optional file persistence
+const visitorHistory: HistoricalVisitor[] = [];
+let historyFileWritable = true;
 
-function loadVisitorHistory(): HistoricalVisitor[] {
-  try {
-    if (fs.existsSync(HISTORY_FILE)) {
-      return JSON.parse(fs.readFileSync(HISTORY_FILE, 'utf-8'));
-    }
-  } catch {
-    console.warn('[History] Could not read history file, starting fresh');
+// Try multiple paths for the history file (compiled vs source)
+const HISTORY_CANDIDATES = [
+  path.join(__dirname, 'data', 'visitors-history.json'),
+  path.join(__dirname, '..', 'data', 'visitors-history.json'),
+];
+const HISTORY_FILE = HISTORY_CANDIDATES.find((p) => {
+  try { return fs.existsSync(path.dirname(p)); } catch { return false; }
+}) ?? HISTORY_CANDIDATES[0];
+
+// Load persisted history into memory on startup
+try {
+  if (fs.existsSync(HISTORY_FILE)) {
+    const data = JSON.parse(fs.readFileSync(HISTORY_FILE, 'utf-8'));
+    if (Array.isArray(data)) visitorHistory.push(...data);
+    console.log(`[History] Loaded ${visitorHistory.length} entries from disk`);
   }
-  return [];
+} catch {
+  console.warn('[History] Could not read history file, starting with empty history');
 }
 
 function appendVisitorHistory(entry: HistoricalVisitor): void {
+  visitorHistory.push(entry);
+
+  if (!historyFileWritable) return;
   try {
     const dir = path.dirname(HISTORY_FILE);
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
-    const history = loadVisitorHistory();
-    history.push(entry);
-    fs.writeFileSync(HISTORY_FILE, JSON.stringify(history));
-  } catch (err) {
-    console.error('[History] Failed to write history:', err);
+    fs.writeFileSync(HISTORY_FILE, JSON.stringify(visitorHistory));
+  } catch {
+    historyFileWritable = false;
+    console.warn('[History] Filesystem not writable; history will be in-memory only');
   }
 }
 
@@ -304,9 +316,8 @@ app.get('/visitors', (req, res) => {
 });
 
 // Get all-time visitor history
-app.get('/api/visitors/history', (req, res) => {
-  const history = loadVisitorHistory();
-  res.json({ visitors: history });
+app.get('/api/visitors/history', (_req, res) => {
+  res.json({ visitors: visitorHistory });
 });
 
 // ===========================================
