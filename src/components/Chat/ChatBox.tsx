@@ -48,7 +48,7 @@ export function ChatBox({ messages, onSend, isConnected }: ChatBoxProps) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="w-[260px] md:w-[300px] bg-cyber-bg/90 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden shadow-2xl shadow-black/40 flex flex-col"
+            className="w-[260px] md:w-[300px] bg-cyber-bg/90 backdrop-blur-xl border border-white/10 overflow-hidden shadow-2xl shadow-black/40 flex flex-col"
           >
             {/* Header */}
             <div className="flex items-center justify-between px-3 py-2 border-b border-white/5">
